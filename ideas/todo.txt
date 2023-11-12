@@ -1,0 +1,24 @@
+general:
+    - add individual torrent info screen (images?)
+    - portability
+    - Web interface
+    - button to go to last screen from torrent list
+    - auto download feature based on filters (queue?)
+    adjust back feature to use breaks instead
+    - re-write tui to work with new class main module
+Search menu
+ - quality
+
+Add QbitTorrent Manager
+    - view running Torrents
+    - remove Torrents
+
+Run from CLI
+    - command to dl torrent from link
+
+SQL database?
+
+Automatic downloads
+    - curatable queue?
+
+
