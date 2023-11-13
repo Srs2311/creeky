@@ -11,3 +11,4 @@ filters/stars.json
 filters/trustedUploaders.txt
 filters/trustedUploaders.json
 __pycache__/trustent_lister.cpython-311.pyc
+pyvenv.cfg
