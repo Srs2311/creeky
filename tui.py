@@ -73,6 +73,7 @@ class TorrentDisplay():
         except AttributeError: 
             self.pagination(stdscr)
             self.display_page(stdscr,page_number)
+            
         else:
             for torrent in self.pages[page_number]:
                 torrent_index = self.pages[page_number].index(torrent)
@@ -124,13 +125,18 @@ class TorrentDisplay():
             elif key == '\x1b':
                 break
             elif key == " ":
+                #open torrent page function
                 if x == 2:
                     self.torrentList.torrents[y-1].get_data(category=self.category)
                     torrent_menu(stdscr,self.torrentList.torrents[(y-1)],category=self.category)
+                    self.pagination(stdscr)
                     self.display_page(stdscr,page_number=page_number)
+                    break 
+                #open in browser function    
                 if x == max_title_length + 32:
                     self.pages[page_number][y-1].get_data(category = self.category)
                     webbrowser.open(self.pages[page_number][y-1].info["url"] + self.pages[page_number][y-1].info["link"])
+                #qbittorrent download function
                 if x == max_title_length + 37:
                     url = f"{self.pages[page_number][y-1].info['url']}{self.pages[page_number][y-1].info['link']}"
                     magnet = tl.get_magnet(url)
@@ -149,26 +155,32 @@ class TorrentDisplay():
                     with qbittorrentapi.Client(**conn_info) as qbt_client:
                         if qbt_client.torrents_add(magnet) != "Ok.":
                             raise Exception("Failed to add torrent.")
+                #similar torrents function
                 if x == max_title_length + 41:
                     self.torrentList.torrents[y-1].get_data(category=self.category)
                     url = tl.generate_search_url(query=self.torrentList.torrents[y-1].data["title"])
                     new_torrent_list = TorrentDisplay(category=self.category,search_url=url,mode="search")
+                    new_torrent_list.pagination(stdscr)
                     new_torrent_list.display_page(stdscr)
-                    self.display_page(stdscr)
+                    self.display_page(stdscr,page_number=page_number)
+                    break
                     
             if y > len(self.pages[page_number]):
                 y = 1
                 next_page = page_number + 1
                 if next_page < len(self.pages):
                     self.display_page(stdscr,next_page,y=y,x=x)
+                    break
                 else:
                     self.display_page(stdscr,0,y=1,x=x)
+                    break
                 
             elif y < 1:
                 if page_number != 0:
                     last_page = page_number - 1
                     y = len(self.pages[last_page])
                     self.display_page(stdscr,last_page,y=y,x=x)
+                    break
                 y = 1
 
 def category_menu(stdscr,category:str="movies"):
@@ -202,7 +214,9 @@ def category_menu(stdscr,category:str="movies"):
                 if category == "xxx" or category == "xxx-week":
                     if star_filter:
                         torrentList.torrentList.filter_tracked_items("./filters/stars.txt")
-                torrentList.display_page(stdscr)             
+                torrentList.pagination(stdscr)
+                torrentList.display_page(stdscr)
+                category_menu(stdscr,category=category)             
             elif y == 2:
                 torrentList = TorrentDisplay(category=category,time="week")
                 if uploader_filter:
@@ -210,7 +224,9 @@ def category_menu(stdscr,category:str="movies"):
                 if category == "xxx" or category == "xxx-week":
                     if star_filter:
                         torrentList.torrentList.filter_tracked_items("./filters/stars.txt")
-                torrentList.display_page(stdscr)  
+                torrentList.pagination(stdscr)
+                torrentList.display_page(stdscr)
+                category_menu(stdscr,category=category)     
             elif y == 3:
                 if uploader_filter == False:
                     uploader_filter = True

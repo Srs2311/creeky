@@ -1,13 +1,19 @@
 general:
-    - add individual torrent info screen (images?)
-    - portability
+    - improve portability
+        - Torrent list has responsive design, other menu screens do not. Need to improve torrent list's responsiveness
     - Web interface
-    - button to go to last screen from torrent list
     - auto download feature based on filters (queue?)
-    adjust back feature to use breaks instead
-    - re-write tui to work with new class main module
+    - ability to add torrent uploaders to approved uploaders list from inside tui
+        - Pressing F while hovering over an uploader on torrent list or torrent menu should add to the uploaders list
+
 Search menu
- - quality
+    - Sort type
+    - Category-based search
+    - exiting torrentlist back to search menu is not redrawing search menu
+
+Documentation:
+    - Review tui code, document and refactor as needed
+
 
 Add QbitTorrent Manager
     - view running Torrents
