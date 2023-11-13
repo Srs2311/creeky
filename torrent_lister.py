@@ -21,6 +21,132 @@ TMDBheaders = {
     "Authorization": f"Bearer {TMDB_API_key}"
 }
 
+class Torrent:
+    def __init__(self,torrent) -> None:
+        torrent_info = {}
+        link = torrent.select('.name')[0]
+        link = link.find_all('a')
+        link = link[1].get("href")
+        torrent_info['title'] = torrent.select('.name')[0].get_text()
+        torrent_info['link'] = link
+        torrent_info['seeders'] = int(torrent.select('.seeds')[0].get_text())
+        torrent_info['leechers'] = torrent.select('.leeches')[0].get_text()
+        torrent_info['size'] = torrent.select('.size')[0].contents[0]
+        torrent_info['uploader'] = torrent.select('.coll-5')[0].get_text()
+        torrent_info['date'] = torrent.select('.coll-5')[0].get_text()
+        torrent_info['url'] = "https://1337x.to"
+        if re.search("[0-9]?[0-9][0-9][0-9]p",torrent_info["title"]):
+                torrent_info["quality"] = (re.findall("[0-9]?[0-9][0-9][0-9]p",torrent_info["title"]))[0]
+        else:
+            torrent_info["quality"] = "Not In Title"
+        self.info = torrent_info
+    
+    
+    def get_data(self,category):
+        if category == "movies":
+            #Does some regex splitting to try and extract just the title of the movie from the torrent title
+            query = self.info.get("title")
+            query = query.replace(" ","+").lower()
+            #first regex match, attempts to match against a release year. usually immidiately follows the movie title                #parenthesis are optional, and not match at the end keeps it from getting confused with the quality
+            query = re.split("[(]?[0-9][0-9][0-9][0-9]",self.info.get("title"))
+            
+            release_year = re.findall("[(]?[0-9][0-9][0-9][0-9]^p",self.info.get("title"))
+            #grabs the title from the previous regex split, and replaces periods with spaces for the api call to tmdb
+            sanitized_movie_title = query[0].replace("."," ")                #provides release year to the query if available
+            if release_year:
+                req = requests.get(f"https://api.themoviedb.org/3/search/movie?query={sanitized_movie_title}&primary_release_year={release_year}", headers=TMDBheaders)
+            else:
+                req = requests.get(f"https://api.themoviedb.org/3/search/movie?query={sanitized_movie_title}", headers=TMDBheaders)
+                #grabs the json from the tmdb call, and appends it to the individual torrent
+                data = req.json()
+                try:
+                    self.data = data["results"][0]
+                except IndexError: 
+                    self.data = "No Data Found"
+
+        elif category == "tv":
+            torrent_title = (self.info["title"])
+            #Regex search for release year, since this is generally the first value after the title
+            if(re.search("[(]?[0-9][0-9][0-9][0-9][^p]",torrent_title)):
+                tv_title = re.split("[(]?[0-9][0-9][0-9][0-9]",torrent_title)
+                    
+                #regex search for Season and Episode values, and removes them from the show title,this value is usually immidiately after the release year
+                if(re.search("[(]?S[0-9][0-9]E?[0-9]?[0-9]?",tv_title[0])):
+                    tv_title = re.split("[(]?S[0-9][0-9]E?[0-9]?[0-9]?",torrent_title)
+            else:
+                #regex split for season and episode values
+                tv_title = re.split("[(]?S[0-9][0-9]E?[0-9]?[0-9]?",torrent_title)
+
+            #regex search and split for the string "Season [0-9] in case season is formatted with season spelled out"
+            if(re.search("(?i)Season[.]?[ ]?[0-9]",tv_title[0])):
+                tv_title = re.split("(?i)Season[.]?[ ]?[0-9]",tv_title[0])
+            
+            sanitized_tv_title = tv_title[0].replace("."," ")
+                
+            #regex to check for Season information, stored in season_number variable
+            if re.search("S[0-9][0-9]",torrent_title):
+                season_number = re.findall("S[0-9][0-9]",torrent_title)
+            elif re.search("(?i)Season[.]?[ ]?[0-9]",torrent_title):
+                season_number = re.findall("(?i)Season[.]?[ ]?[0-9]",torrent_title)
+
+            #regex to grab episode information, skips if not in title
+            try:
+                episode_number = re.findall("E[0-9][0-9]",torrent_title)
+            except:
+                pass
+                
+            #grabs series data
+            req = requests.get(f"https://api.themoviedb.org/3/search/tv?query={sanitized_tv_title}", headers=TMDBheaders)
+            series_data = req.json()
+                
+            #if series data is successfully retrieved, a request is made for the season or episode info, depending on what is provided in the title
+            try:
+                series_data = series_data.get("results")[0]
+            except  IndexError:
+                pass
+            else:
+                self.series_data = (series_data)    
+                #checking to see if a series number and an episode number was provided to determine if we need to search for a specific episode or a whole season
+                if season_number and episode_number:
+                    season_number = season_number[0]
+                    season_number = season_number.lower()
+                    if season_number.__contains__("season"):
+                        season_number.strip()
+                        season_number = season_number.strip("season")
+                    elif season_number.__contains__("s"):
+                        season_number = season_number.strip("s")
+
+                    #strips the e off of the episode number
+                    episode_number = episode_number[0][1:]
+
+                        #checks if the season number starts with a 0 and removes it if it does
+                    if season_number[0] == "0":
+                        season_number = season_number[1:]
+                        #same for episode number
+                    if episode_number[0] == "0":
+                        episode_number = episode_number[1:]
+                            
+                        
+                    req = requests.get(f"https://api.themoviedb.org/3/tv/{series_data['id']}/season/{season_number}/episode/{episode_number}", headers=TMDBheaders)
+                    episode_data = req.json()
+                    season_data = req.json()
+                    self.episode_data = (episode_data)
+                    
+                elif season_number:
+                    season_number = season_number[0]             
+                    if season_number.lower().__contains__("season"):
+                        season_number = season_number.lower().strip("season")
+                    elif season_number.lower().__contains__("s"):
+                        season_number = season_number.lower().strip("s")
+                        
+                    if season_number[0] == "0":
+                        season_number = season_number[1:]
+                        req = requests.get(f"https://api.themoviedb.org/3/tv/{series_data['id']}/season/{season_number}", headers=TMDBheaders)
+                    season_data = req.json()
+                    self.season_data = (season_data)
+                    
+                
+    
 class TorrentList:
     """Class to create lists of torrents based on a query"""
     def __init__(self,url:str) -> None:
@@ -31,25 +157,8 @@ class TorrentList:
         self.torrents = []
         for torrent in soup.select('tr')[1:]:
             #gets the link to the torrent by selecting the link on the torrent name, and grabbing the href value
-            torrent_info = {}
-            link = torrent.select('.name')[0]
-            link = link.find_all('a')
-            link = link[1].get("href")
-            
-            torrent_info['title'] = torrent.select('.name')[0].get_text()
-            torrent_info['link'] = link
-            torrent_info['seeders'] = int(torrent.select('.seeds')[0].get_text())
-            torrent_info['leechers'] = torrent.select('.leeches')[0].get_text()
-            torrent_info['size'] = torrent.select('.size')[0].contents[0]
-            torrent_info['uploader'] = torrent.select('.coll-5')[0].get_text()
-            torrent_info['date'] = torrent.select('.coll-5')[0].get_text()
-            torrent_info['url'] = "https://1337x.to"
-            
-            if re.search("[0-9]?[0-9][0-9][0-9]p",torrent_info["title"]):
-                torrent_info["quality"] = (re.findall("[0-9]?[0-9][0-9][0-9]p",torrent_info["title"]))[0]
-            else:
-                torrent_info["quality"] = "Not In Title"
-            self.torrents.append(torrent_info)
+            new_torrent = Torrent(torrent)
+            self.torrents.append(new_torrent)
 
     def filter_uploaders(self):
         """Removes torrents from self.torrents if not uploaded by a trusted uploader"""
@@ -73,7 +182,7 @@ class TorrentList:
         #only runs the check if there is any uploaders in the trusted uploaders list
         if len(trusted_uploaders) > 0:
             for torrent in self.torrents:
-                if torrent.get("uploader") in trusted_uploaders:
+                if torrent.info["uploader"] in trusted_uploaders:
                     trusted_torrents_list.append(torrent)
         else:
             print("There are no trusted uploaders, try adding some")
@@ -104,7 +213,7 @@ class TorrentList:
         new_list = []
         for torrent in self.torrents:
 
-            if int(torrent["seeders"]) > int(min):
+            if int(torrent.info["seeders"]) > int(min):
                 new_list.append(torrent)
         self.torrents = new_list
 
@@ -117,7 +226,7 @@ class TorrentList:
         for torrent in self.torrents:
             #then converts the torrent quality to a properly formated int
             try:
-                torrent_quality = int(torrent["quality"].strip("p"))
+                torrent_quality = int(torrent.info["quality"].strip("p"))
             #if the torrent quality is not found, it is set to 0
             except ValueError:
                 torrent_quality = 0
@@ -134,124 +243,8 @@ class MovieTVTorrentList(TorrentList):
     
     def get_tmbdb_data(self,category:str="movies"):
         """Calls to TMDB to get torrent data"""
-        if category == "movies":
-            for torrent in self.torrents:
-                #Does some regex splitting to try and extract just the title of the movie from the torrent title
-                query = torrent.get("title")
-                query = query.replace(" ","+").lower()
-                #first regex match, attempts to match against a release year. usually immidiately follows the movie title
-                #parenthesis are optional, and not match at the end keeps it from getting confused with the quality
-                query = re.split("[(]?[0-9][0-9][0-9][0-9]",torrent.get("title"))
-                release_year = re.findall("[(]?[0-9][0-9][0-9][0-9]^p",torrent.get("title"))
-                #grabs the title from the previous regex split, and replaces periods with spaces for the api call to tmdb
-                sanitized_movie_title = query[0].replace("."," ")
-                #provides release year to the query if available
-                if release_year:
-                    req = requests.get(f"https://api.themoviedb.org/3/search/movie?query={sanitized_movie_title}&primary_release_year={release_year}", headers=TMDBheaders)
-                else:
-                    req = requests.get(f"https://api.themoviedb.org/3/search/movie?query={sanitized_movie_title}", headers=TMDBheaders)
-                #grabs the json from the tmdb call, and appends it to the individual torrent
-                data = req.json()
-                torrent_index = self.torrents.index(torrent)
-                try:
-                    self.torrents[torrent_index]["data"] = (data["results"][0])
-                except IndexError: 
-                    self.torrents[torrent_index]["data"] = "No Data Found"
-                torrent_index = self.torrents.index(torrent)
-
-        
-        elif category == "tv":
-            for torrent in self.torrents:
-
-                #resetting these variables after a loop, to prevent sticking
-                season_number = None
-                episode_number = None
-                
-                torrent_index = self.torrents.index(torrent)
-                torrent_title = (torrent.get("title"))
-                #Regex search for release year, since this is generally the first value after the title
-                if(re.search("[(]?[0-9][0-9][0-9][0-9][^p]",torrent_title)):
-                    tv_title = re.split("[(]?[0-9][0-9][0-9][0-9]",torrent_title)
-                    
-                    #regex search for Season and Episode values, and removes them from the show title,this value is usually immidiately after the release year
-                    if(re.search("[(]?S[0-9][0-9]E?[0-9]?[0-9]?",tv_title[0])):
-                        tv_title = re.split("[(]?S[0-9][0-9]E?[0-9]?[0-9]?",torrent_title)
-                else:
-                    #regex split for season and episode values
-                    tv_title = re.split("[(]?S[0-9][0-9]E?[0-9]?[0-9]?",torrent_title)
-
-                #regex search and split for the string "Season [0-9] in case season is formatted with season spelled out"
-                if(re.search("(?i)Season[.]?[ ]?[0-9]",tv_title[0])):
-                    tv_title = re.split("(?i)Season[.]?[ ]?[0-9]",tv_title[0])
-                
-                sanitized_tv_title = tv_title[0].replace("."," ")
-                
-                #regex to check for Season information, stored in season_number variable
-                if re.search("S[0-9][0-9]",torrent_title):
-                    season_number = re.findall("S[0-9][0-9]",torrent_title)
-                elif re.search("(?i)Season[.]?[ ]?[0-9]",torrent_title):
-                    season_number = re.findall("(?i)Season[.]?[ ]?[0-9]",torrent_title)
-
-                #regex to grab episode information, skips if not in title
-                try:
-                    episode_number = re.findall("E[0-9][0-9]",torrent_title)
-                except:
-                    pass
-                
-                #grabs series data
-                req = requests.get(f"https://api.themoviedb.org/3/search/tv?query={sanitized_tv_title}", headers=TMDBheaders)
-                series_data = req.json()
-                
-                #if series data is successfully retrieved, a request is made for the season or episode info, depending on what is provided in the title
-                try:
-                    series_data = series_data.get("results")[0]
-                except  IndexError:
-                    pass
-                else:
-                    self.torrents[torrent_index]["series_data"] = (series_data)
-                    
-                    #checking to see if a series number and an episode number was provided to determine if we need to search for a specific episode or a whole season
-                    if season_number and episode_number:
-                        season_number = season_number[0]
-                        season_number = season_number.lower()
-                        if season_number.__contains__("season"):
-                            season_number.strip()
-                            season_number = season_number.strip("season")
-                        elif season_number.__contains__("s"):
-                            season_number = season_number.strip("s")
-
-                        #strips the e off of the episode number
-                        episode_number = episode_number[0][1:]
-
-                        #checks if the season number starts with a 0 and removes it if it does
-                        if season_number[0] == "0":
-                            season_number = season_number[1:]
-                        #same for episode number
-                        if episode_number[0] == "0":
-                            episode_number = episode_number[1:]
-                            
-                        
-                        req = requests.get(f"https://api.themoviedb.org/3/tv/{series_data['id']}/season/{season_number}/episode/{episode_number}", headers=TMDBheaders)
-                        episode_data = req.json()
-                        season_data = req.json()
-                        torrent_index = self.torrents.index(torrent)
-                        self.torrents[torrent_index]["data"] = (episode_data)
-                    
-                    elif season_number:
-
-                        season_number = season_number[0]             
-                        if season_number.lower().__contains__("season"):
-                            season_number = season_number.lower().strip("season")
-
-                        elif season_number.lower().__contains__("s"):
-                            season_number = season_number.lower().strip("s")
-                        
-                        if season_number[0] == "0":
-                            season_number = season_number[1:]
-
-                        req = requests.get(f"https://api.themoviedb.org/3/tv/{series_data['id']}/season/{season_number}", headers=TMDBheaders)
-                        season_data = req.json()
-                        self.torrents[torrent_index]["data"] = (season_data)
+        for torrent in self.torrents:
+            torrent.get_data(category=category)
 
 class AnimeTorrentList(TorrentList):
     """Torrent List for Anime Section"""
@@ -268,7 +261,7 @@ class XXXTorrentList(TorrentList):
             data = {}
             torrent_index = self.torrents.index(torrent)
             #regex to split torrent title up based on spacing in torrent title
-            torrent_info = re.split("[ |.|-]", torrent["title"])
+            torrent_info = re.split("[ |.|-]", torrent.info["title"])
 
             #first block is almost always the studio name. may need to look into a way to verify these against a source to help pick out incorrect matches
             studio = torrent_info[0]
@@ -280,7 +273,7 @@ class XXXTorrentList(TorrentList):
                 performers.append(f"{torrent_info[7]} {torrent_info[8]}")
             
             #gets title of video from torrent title
-            title = re.split("xxx",torrent["title"].lower())
+            title = re.split("xxx",torrent.info["title"].lower())
             title = re.split("[0-9][0-9][ |.][0-9][0-9][ |.][0-9][0-9]",title[0])
             try:
                 title[1] = title[1].replace(".", " ")
@@ -290,7 +283,7 @@ class XXXTorrentList(TorrentList):
             data["studio"] = studio
             data["performers"] = performers
             
-            self.torrents[torrent_index]["data"] = data
+            torrent.data = data
         
 def generate_search_url(query,sort="seeders/desc",tpage:int=1,baseurl="https://1337x.to/"):
     """Generates a properly formated search URL"""

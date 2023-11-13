@@ -39,6 +39,7 @@ class TorrentDisplay():
                 new_page.append(torrent)
             self.pages.append(new_page)
 
+    
     def display_page(self,stdscr,page_number:int=0,y=1,x=2):
         stdscr.clear()
         screensize = stdscr.getmaxyx()
@@ -65,6 +66,8 @@ class TorrentDisplay():
         stdscr.addstr(0,int(max_title_length + 31),"BWSR")
         stdscr.addstr(0,int(max_title_length + 35),"|")
         stdscr.addstr(0,int(max_title_length + 36),"DL")
+        stdscr.addstr(0,int(max_title_length + 39),"|")
+        stdscr.addstr(0,int(max_title_length + 40),"SMLR")
         try:
             print(self.pages[0])
         except AttributeError: 
@@ -74,20 +77,22 @@ class TorrentDisplay():
             for torrent in self.pages[page_number]:
                 torrent_index = self.pages[page_number].index(torrent)
                 
-                if len(torrent["title"]) > max_title_length:
-                    torrent["title"] = torrent["title"][0:max_title_length]
+                if len(torrent.info["title"]) > max_title_length:
+                    torrent.info["title"] = torrent.info["title"][0:max_title_length]
                 
-                stdscr.addstr(torrent_index + 1,2,torrent["title"])
+                stdscr.addstr(torrent_index + 1,2,torrent.info["title"])
                 stdscr.addstr(torrent_index + 1,(max_title_length + 4),"|")
-                stdscr.addstr(torrent_index + 1,(max_title_length + 5),torrent["uploader"])
+                stdscr.addstr(torrent_index + 1,(max_title_length + 5),torrent.info["uploader"])
                 stdscr.addstr(torrent_index + 1,(max_title_length + 14),"|")
-                stdscr.addstr(torrent_index + 1,(max_title_length + 15),torrent["size"])
+                stdscr.addstr(torrent_index + 1,(max_title_length + 15),torrent.info["size"])
                 stdscr.addstr(torrent_index + 1,(max_title_length + 24),"|")
-                stdscr.addstr(torrent_index + 1,(max_title_length + 25),str(torrent["seeders"]))
+                stdscr.addstr(torrent_index + 1,(max_title_length + 25),str(torrent.info["seeders"]))
                 stdscr.addstr(torrent_index + 1,(max_title_length + 30),"|")
                 stdscr.addstr(torrent_index + 1,(max_title_length + 31),"[ ]")
                 stdscr.addstr(torrent_index + 1,(max_title_length + 35),"|")
                 stdscr.addstr(torrent_index + 1,(max_title_length + 36),"[ ] ")
+                stdscr.addstr(torrent_index + 1,(max_title_length + 39),"|")
+                stdscr.addstr(torrent_index + 1,(max_title_length + 40),"[ ]")
         stdscr.refresh()      
         while True:
             stdscr.move(y,x)
@@ -99,14 +104,23 @@ class TorrentDisplay():
                 y+=1
             elif key == "KEY_RIGHT":
                 if x == 2:
+                    x = max_title_length + 5
+                elif x == max_title_length + 5:
                     x = max_title_length + 32
                 elif x == max_title_length + 32:
                     x = max_title_length + 37
+                elif x == max_title_length + 37:
+                    x = max_title_length + 41
             elif key == "KEY_LEFT":
-                if x == max_title_length + 37:
+                if x == max_title_length + 41:
+                    x = max_title_length + 37
+                elif x == max_title_length + 37:
                     x = max_title_length + 32
                 elif x == max_title_length + 32:
+                    x = max_title_length + 5
+                elif x == max_title_length + 5:
                     x = 2
+                    
             elif key == '\x1b':
                 category_menu(stdscr,category=self.category)
             elif key == " ":
@@ -196,8 +210,7 @@ def category_menu(stdscr,category:str="movies"):
                 y = 1
             if y == 0:
                 y = 3
-    
-        
+
 
 def categories_menu(stdscr):
     stdscr.clear()
@@ -244,6 +257,7 @@ def categories_menu(stdscr):
             y=1
         if y == 0:
             y = 9
+
 
 def searchMenu(stdscr):
     stdscr.clear()

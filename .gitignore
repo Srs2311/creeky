@@ -5,3 +5,6 @@ old_code/bot.py
 old_code/movieTVCheck.py
 old_code/tui.py
 apiBackEnd.py
+filters/movies.txt
+filters/stars.txt
+filters/trustedUploaders.txt
