@@ -127,8 +127,8 @@ class TorrentDisplay():
             elif key == " ":
                 #open torrent page function
                 if x == 2:
-                    self.torrentList.torrents[y-1].get_data(category=self.category)
-                    torrent_menu(stdscr,self.torrentList.torrents[(y-1)],category=self.category)
+                    self.pages[page_number][y-1].get_data(category=self.category)
+                    torrent_menu(stdscr,self.pages[page_number][(y-1)],category=self.category)
                     self.pagination(stdscr)
                     self.display_page(stdscr,page_number=page_number)
                     break 
@@ -157,8 +157,8 @@ class TorrentDisplay():
                             raise Exception("Failed to add torrent.")
                 #similar torrents function
                 if x == max_title_length + 41:
-                    self.torrentList.torrents[y-1].get_data(category=self.category)
-                    url = tl.generate_search_url(query=self.torrentList.torrents[y-1].data["title"])
+                    self.pages[page_number][y-1].get_data(category=self.category)
+                    url = tl.generate_search_url(query=self.pages[page_number][y-1].data["title"])
                     new_torrent_list = TorrentDisplay(category=self.category,search_url=url,mode="search")
                     new_torrent_list.pagination(stdscr)
                     new_torrent_list.display_page(stdscr)

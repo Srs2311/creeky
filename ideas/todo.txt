@@ -13,7 +13,7 @@ Search menu
 
 Documentation:
     - Review tui code, document and refactor as needed
-
+    - Better documentation on object structure
 
 Add QbitTorrent Manager
     - view running Torrents
