@@ -145,7 +145,33 @@ class Torrent:
                     season_data = req.json()
                     self.season_data = (season_data)
                     
-                
+        elif category == "xxx" or category == "xxx-week":
+            data = {}
+            #regex to split torrent title up based on spacing in torrent title
+            torrent_info = re.split("[ |.|-]", self.info["title"])
+
+            #first block is almost always the studio name. may need to look into a way to verify these against a source to help pick out incorrect matches
+            studio = torrent_info[0]
+            
+            #grabs performers based on typical title pattern, if there is an "and" after the first performer it checks for a second
+            performers = []
+            performers.append(f"{torrent_info[4]} {torrent_info[5]}")
+            if torrent_info[6].lower() == "and":
+                performers.append(f"{torrent_info[7]} {torrent_info[8]}")
+            
+            #gets title of video from torrent title
+            title = re.split("xxx",self.info["title"].lower())
+            title = re.split("[0-9][0-9][ |.][0-9][0-9][ |.][0-9][0-9]",title[0])
+            try:
+                title[1] = title[1].replace(".", " ")
+                data["title"] = title[1].title().strip()
+            except IndexError:
+                data["title"] = "Not in torrent title"
+            data["studio"] = studio
+            data["performers"] = performers
+            
+            self.data = data
+            
     
 class TorrentList:
     """Class to create lists of torrents based on a query"""
@@ -259,32 +285,7 @@ class XXXTorrentList(TorrentList):
 
     def get_data(self):
         for torrent in self.torrents:
-            data = {}
-            torrent_index = self.torrents.index(torrent)
-            #regex to split torrent title up based on spacing in torrent title
-            torrent_info = re.split("[ |.|-]", torrent.info["title"])
-
-            #first block is almost always the studio name. may need to look into a way to verify these against a source to help pick out incorrect matches
-            studio = torrent_info[0]
-            
-            #grabs performers based on typical title pattern, if there is an "and" after the first performer it checks for a second
-            performers = []
-            performers.append(f"{torrent_info[4]} {torrent_info[5]}")
-            if torrent_info[6].lower() == "and":
-                performers.append(f"{torrent_info[7]} {torrent_info[8]}")
-            
-            #gets title of video from torrent title
-            title = re.split("xxx",torrent.info["title"].lower())
-            title = re.split("[0-9][0-9][ |.][0-9][0-9][ |.][0-9][0-9]",title[0])
-            try:
-                title[1] = title[1].replace(".", " ")
-                data["title"] = title[1].title().strip()
-            except IndexError:
-                data["title"] = "Not in torrent title"
-            data["studio"] = studio
-            data["performers"] = performers
-            
-            torrent.data = data
+            torrent.get_data(category="xxx")
         
 def generate_search_url(query,sort="seeders/desc",tpage:int=1,baseurl="https://1337x.to/"):
     """Generates a properly formated search URL"""

@@ -337,8 +337,14 @@ def torrent_menu(stdscr,torrent,category:str="movies"):
     stdscr.clear()
     stdscr.addstr(1,2,torrent.info["title"])
     stdscr.addstr(2,2,torrent.info["uploader"])
-    stdscr.addstr(3,2,torrent.data["title"])
-    stdscr.addstr(4,2,category)
+    if category == "tv" or category == "tv-week":
+        try:
+            stdscr.addstr(3,2,torrent.series_data["overview"])
+        except AttributeError:
+            stdscr.addstr(3,2,"Could not Find Series Data")
+    else:
+        stdscr.addstr(3,2,torrent.data["title"])
+        
     if category == "movies" or category == "movies-week":
         stdscr.addstr(4,2,torrent.data["overview"])
     stdscr.refresh()
