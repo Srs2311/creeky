@@ -306,6 +306,8 @@ def search_menu(stdscr):
             y-=1
         elif key == "KEY_DOWN":
             y+=1
+        elif key == '\x1b':
+            main(stdscr)
         elif key == " ":
             if y == 1:
                 query_text = query_textbox.edit()
@@ -337,16 +339,23 @@ def torrent_menu(stdscr,torrent,category:str="movies"):
     stdscr.clear()
     stdscr.addstr(1,2,torrent.info["title"])
     stdscr.addstr(2,2,torrent.info["uploader"])
+    #draws the series data for tv shows on the screen
     if category == "tv" or category == "tv-week":
         try:
             stdscr.addstr(3,2,torrent.series_data["overview"])
         except AttributeError:
             stdscr.addstr(3,2,"Could not Find Series Data")
-    else:
-        stdscr.addstr(3,2,torrent.data["title"])
-        
+        else:
+            stdscr.addstr(3,2,torrent.data["title"])
+    
     if category == "movies" or category == "movies-week":
         stdscr.addstr(4,2,torrent.data["overview"])
+    if category == "xxx" or category == "xxx-week":
+        i = 2
+        for performer in torrent.data["performers"]:
+            
+            i = i + 1
+            stdscr.addstr(i,2,performer)
     stdscr.refresh()
     y,x = 1,2
     while True:

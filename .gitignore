@@ -8,3 +8,4 @@ apiBackEnd.py
 filters/movies.txt
 filters/stars.txt
 filters/trustedUploaders.txt
+__pycache__/trustent_lister.cpython-311.pyc
