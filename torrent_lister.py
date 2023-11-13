@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import re
 from dotenv import load_dotenv
 import os
+import json
 
 load_dotenv()
 env = dict(os.environ)
@@ -159,11 +160,16 @@ class Torrent:
             if torrent_info[6].lower() == "and":
                 performers.append(f"{torrent_info[7]} {torrent_info[8]}")
             
+            
             #gets title of video from torrent title
-            title = re.split("xxx",self.info["title"].lower())
-            title = re.split("[0-9][0-9][ |.][0-9][0-9][ |.][0-9][0-9]",title[0])
+            if re.search("[0-9]?[0-9][0-9][0-9]p",self.info["title"].lower()):
+                title = re.split("[0-9]?[0-9][0-9][0-9]p",self.info["title"].lower())
+            else:
+                title = re.split("xxx",self.info["title"].lower())
+            
+            #title = re.split("[0-9][0-9][ |.][0-9][0-9][ |.][0-9][0-9]",title[0])
             try:
-                title[1] = title[1].replace(".", " ")
+                title[1] = title[0].replace(".", " ")
                 data["title"] = title[1].title().strip()
             except IndexError:
                 data["title"] = "Not in torrent title"
@@ -191,10 +197,10 @@ class TorrentList:
         #opens the trusted uploaders file, and creates a list of the uploaders on the list
         #if the file does not exist, it is created.
         try:
-            with open("./filters/trustedUploaders.txt", "r") as trusted_uploaders:
-                trusted_uploaders = trusted_uploaders.read().split(',')
+            with open("./filters/trustedUploaders.json", "r") as trusted_uploaders:
+                trusted_uploaders = json.load(trusted_uploaders)
         except FileNotFoundError:
-            with open("./filters/trustedUploaders.txt", "w") as trusted_uploaders:
+            with open("./filters/trustedUploaders.json", "w") as trusted_uploaders:
                 pass  
         else:
             for uploader in trusted_uploaders:
@@ -218,10 +224,10 @@ class TorrentList:
         """Filters self.torrents based on a list of items in a provided file, Matches against the torrent title."""
         try: 
             with open(file, "r") as items:
-                item_list = items.read().split(',')
+                item_list = json.load(items)
         except FileNotFoundError:
             with open(file, "w") as items:
-                pass       
+                pass      
         else:
             filtered_torrent_list = []
             for torrent in self.torrents: 
@@ -322,3 +328,10 @@ def get_popular_queue(queue,time:str="day"):
     except UnboundLocalError:
         return None
 
+def add_to_filter(filter:str,item:str):
+    with open(filter, "r") as item_list:
+        items = json.load(item_list)
+        if item not in items:
+            items.append(item)
+        with open(filter, "w") as item_list:
+            item_list.write(json.dumps(items))

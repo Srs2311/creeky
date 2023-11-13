@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import webbrowser
 import qbittorrentapi
 import torrent_lister as tl
+import json
 
 class TorrentDisplay():
     """Creates a list of pages with appropriately long lists of torrents based on screen size"""
@@ -16,6 +17,7 @@ class TorrentDisplay():
             self.mode = mode
         elif mode == "search":
             self.torrentList = tl.TorrentList(search_url)
+            self.category = category
             self.mode = mode
     def pagination(self,stdscr):
         screensize = stdscr.getmaxyx()
@@ -83,7 +85,20 @@ class TorrentDisplay():
                 
                 stdscr.addstr(torrent_index + 1,2,torrent.info["title"])
                 stdscr.addstr(torrent_index + 1,(max_title_length + 4),"|")
-                stdscr.addstr(torrent_index + 1,(max_title_length + 5),torrent.info["uploader"])
+                
+                #writes the username in green if the user is in the trusted uploader json
+                try:
+                    with open("./filters/trustedUploaders.json", "r") as trusted_uploaders:
+                        trusted_uploaders = json.load(trusted_uploaders)
+                except FileNotFoundError:
+                    with open("./filters/trustedUploaders.json", "w") as trusted_uploaders:
+                        pass  
+                else: 
+                    if torrent.info["uploader"] in trusted_uploaders:
+                        stdscr.addstr(torrent_index + 1,(max_title_length + 5),torrent.info["uploader"],curses.color_pair(1))
+                    else:
+                        stdscr.addstr(torrent_index + 1,(max_title_length + 5),torrent.info["uploader"])
+                
                 stdscr.addstr(torrent_index + 1,(max_title_length + 14),"|")
                 stdscr.addstr(torrent_index + 1,(max_title_length + 15),torrent.info["size"])
                 stdscr.addstr(torrent_index + 1,(max_title_length + 24),"|")
@@ -132,12 +147,14 @@ class TorrentDisplay():
                     self.pagination(stdscr)
                     self.display_page(stdscr,page_number=page_number)
                     break 
+                elif x == max_title_length + 5:
+                    tl.add_to_filter("./filters/trustedUploaders.json",self.pages[page_number][y-1].info["uploader"])
                 #open in browser function    
-                if x == max_title_length + 32:
+                elif x == max_title_length + 32:
                     self.pages[page_number][y-1].get_data(category = self.category)
                     webbrowser.open(self.pages[page_number][y-1].info["url"] + self.pages[page_number][y-1].info["link"])
                 #qbittorrent download function
-                if x == max_title_length + 37:
+                elif x == max_title_length + 37:
                     url = f"{self.pages[page_number][y-1].info['url']}{self.pages[page_number][y-1].info['link']}"
                     magnet = tl.get_magnet(url)
                 
@@ -156,7 +173,7 @@ class TorrentDisplay():
                         if qbt_client.torrents_add(magnet) != "Ok.":
                             raise Exception("Failed to add torrent.")
                 #similar torrents function
-                if x == max_title_length + 41:
+                elif x == max_title_length + 41:
                     self.pages[page_number][y-1].get_data(category=self.category)
                     url = tl.generate_search_url(query=self.pages[page_number][y-1].data["title"])
                     new_torrent_list = TorrentDisplay(category=self.category,search_url=url,mode="search")
@@ -213,7 +230,7 @@ def category_menu(stdscr,category:str="movies"):
                     torrentList.torrentList.filter_uploaders()
                 if category == "xxx" or category == "xxx-week":
                     if star_filter:
-                        torrentList.torrentList.filter_tracked_items("./filters/stars.txt")
+                        torrentList.torrentList.filter_tracked_items("./filters/stars.json")
                 torrentList.pagination(stdscr)
                 torrentList.display_page(stdscr)
                 category_menu(stdscr,category=category)             
@@ -223,7 +240,7 @@ def category_menu(stdscr,category:str="movies"):
                     torrentList.torrentList.filter_uploaders()
                 if category == "xxx" or category == "xxx-week":
                     if star_filter:
-                        torrentList.torrentList.filter_tracked_items("./filters/stars.txt")
+                        torrentList.torrentList.filter_tracked_items("./filters/stars.json")
                 torrentList.pagination(stdscr)
                 torrentList.display_page(stdscr)
                 category_menu(stdscr,category=category)     
@@ -395,6 +412,7 @@ def torrent_menu(stdscr,torrent,category:str="movies"):
             
 newOptions = [{"position": 1,"text": "Categories"},{"position":2,"text": "Search"}]
 def main(stdscr):
+    curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
     while True:
         stdscr.clear()
         for option in newOptions:

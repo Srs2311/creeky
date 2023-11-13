@@ -7,5 +7,7 @@ old_code/tui.py
 apiBackEnd.py
 filters/movies.txt
 filters/stars.txt
+filters/stars.json
 filters/trustedUploaders.txt
+filters/trustedUploaders.json
 __pycache__/trustent_lister.cpython-311.pyc
