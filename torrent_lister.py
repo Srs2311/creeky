@@ -169,7 +169,7 @@ class Torrent:
                 data["title"] = "Not in torrent title"
             data["studio"] = studio
             data["performers"] = performers
-            
+            self.category = category
             self.data = data
             
     

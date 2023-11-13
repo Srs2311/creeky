@@ -122,16 +122,17 @@ class TorrentDisplay():
                     x = 2
                     
             elif key == '\x1b':
-                category_menu(stdscr,category=self.category)
+                break
             elif key == " ":
                 if x == 2:
                     self.torrentList.torrents[y-1].get_data(category=self.category)
                     torrent_menu(stdscr,self.torrentList.torrents[(y-1)],category=self.category)
                     self.display_page(stdscr,page_number=page_number)
                 if x == max_title_length + 32:
-                    webbrowser.open(self.pages[page_number][y-1].get("url") + self.pages[page_number][y-1].get("link"))
+                    self.pages[page_number][y-1].get_data(category = self.category)
+                    webbrowser.open(self.pages[page_number][y-1].info["url"] + self.pages[page_number][y-1].info["link"])
                 if x == max_title_length + 37:
-                    url = f"{self.pages[page_number][y-1]['url']}{self.pages[page_number][y-1]['link']}"
+                    url = f"{self.pages[page_number][y-1].info['url']}{self.pages[page_number][y-1].info['link']}"
                     magnet = tl.get_magnet(url)
                 
                     conn_info = dict(
@@ -148,6 +149,13 @@ class TorrentDisplay():
                     with qbittorrentapi.Client(**conn_info) as qbt_client:
                         if qbt_client.torrents_add(magnet) != "Ok.":
                             raise Exception("Failed to add torrent.")
+                if x == max_title_length + 41:
+                    self.torrentList.torrents[y-1].get_data(category=self.category)
+                    url = tl.generate_search_url(query=self.torrentList.torrents[y-1].data["title"])
+                    new_torrent_list = TorrentDisplay(category=self.category,search_url=url,mode="search")
+                    new_torrent_list.display_page(stdscr)
+                    self.display_page(stdscr)
+                    
             if y > len(self.pages[page_number]):
                 y = 1
                 next_page = page_number + 1
@@ -339,6 +347,7 @@ def torrent_menu(stdscr,torrent,category:str="movies"):
     stdscr.clear()
     stdscr.addstr(1,2,torrent.info["title"])
     stdscr.addstr(2,2,torrent.info["uploader"])
+    stdscr.addstr(3,2,torrent.data["title"])
     #draws the series data for tv shows on the screen
     if category == "tv" or category == "tv-week":
         try:
@@ -351,7 +360,7 @@ def torrent_menu(stdscr,torrent,category:str="movies"):
     if category == "movies" or category == "movies-week":
         stdscr.addstr(4,2,torrent.data["overview"])
     if category == "xxx" or category == "xxx-week":
-        i = 2
+        i = 3
         for performer in torrent.data["performers"]:
             
             i = i + 1
