@@ -169,7 +169,7 @@ class TorrentList:
                 trusted_uploaders = trusted_uploaders.read().split(',')
         except FileNotFoundError:
             with open("./filters/trustedUploaders.txt", "w") as trusted_uploaders:
-                trusted_uploaders = trusted_uploaders.read().split(',')  
+                pass  
         else:
             for uploader in trusted_uploaders:
                 #removes empty uploaders since those will match anything
@@ -195,18 +195,19 @@ class TorrentList:
                 item_list = items.read().split(',')
         except FileNotFoundError:
             with open(file, "w") as items:
-                item_list = items.read().split(',')        
-        filtered_torrent_list = []
-        for torrent in self.torrents: 
-            for item in item_list:
-                #makes sure the item is not empty first
-                if item.strip() != "":
-                    #then converts both the item and the torrent title to the same naming scheme, converting everything to lower, and replacing spaces with periods
-                    #if there is a match in the torrent title, the item is added to the new torrent list
-                    item = item.replace(" ",".")
-                    if torrent.get("title").lower().replace(" ",".").__contains__(item.lower().replace(" ",".")):
-                        filtered_torrent_list.append(torrent)
-        self.torrents = filtered_torrent_list
+                pass       
+        else:
+            filtered_torrent_list = []
+            for torrent in self.torrents: 
+                for item in item_list:
+                    #makes sure the item is not empty first
+                    if item.strip() != "":
+                        #then converts both the item and the torrent title to the same naming scheme, converting everything to lower, and replacing spaces with periods
+                        #if there is a match in the torrent title, the item is added to the new torrent list
+                        item = item.replace(" ",".")
+                        if torrent.info["title"].lower().replace(" ",".").__contains__(item.lower().replace(" ",".")):
+                            filtered_torrent_list.append(torrent)
+            self.torrents = filtered_torrent_list
 
     def filter_minimum_seeders(self,min:int):
         """Checks the seeders on a torrent list, and removes if it is below a certain value"""
@@ -241,7 +242,7 @@ class MovieTVTorrentList(TorrentList):
     def __init__(self,url:str) -> None:
         super().__init__(url)
     
-    def get_tmbdb_data(self,category:str="movies"):
+    def get_data(self,category:str="movies"):
         """Calls to TMDB to get torrent data"""
         for torrent in self.torrents:
             torrent.get_data(category=category)

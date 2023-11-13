@@ -124,6 +124,10 @@ class TorrentDisplay():
             elif key == '\x1b':
                 category_menu(stdscr,category=self.category)
             elif key == " ":
+                if x == 2:
+                    self.torrentList.torrents[y-1].get_data(category=self.category)
+                    torrent_menu(stdscr,self.torrentList.torrents[(y-1)],category=self.category)
+                    self.display_page(stdscr,page_number=page_number)
                 if x == max_title_length + 32:
                     webbrowser.open(self.pages[page_number][y-1].get("url") + self.pages[page_number][y-1].get("link"))
                 if x == max_title_length + 37:
@@ -168,8 +172,9 @@ def category_menu(stdscr,category:str="movies"):
     stdscr.addstr(1,2,"[ ]Popular Today")
     stdscr.addstr(2,2,"[ ]Popular Week")
     stdscr.addstr(3,2,"[ ]Filter Uploaders")
-    if category == "xxx":
+    if category == "xxx" or category == "xxx-week":
         stdscr.addstr(4,2,"[ ]Filter Stars")
+        star_filter = False
     y,x=1,3
     uploader_filter = False
     while True:
@@ -185,12 +190,18 @@ def category_menu(stdscr,category:str="movies"):
             if y == 1:
                 torrentList = TorrentDisplay(category=category)
                 if uploader_filter:
-                    torrentList.torrentList.filter_uploaders()   
+                    torrentList.torrentList.filter_uploaders()
+                if category == "xxx" or category == "xxx-week":
+                    if star_filter:
+                        torrentList.torrentList.filter_tracked_items("./filters/stars.txt")
                 torrentList.display_page(stdscr)             
             elif y == 2:
                 torrentList = TorrentDisplay(category=category,time="week")
                 if uploader_filter:
                     torrentList.torrentList.filter_uploaders()
+                if category == "xxx" or category == "xxx-week":
+                    if star_filter:
+                        torrentList.torrentList.filter_tracked_items("./filters/stars.txt")
                 torrentList.display_page(stdscr)  
             elif y == 3:
                 if uploader_filter == False:
@@ -199,7 +210,14 @@ def category_menu(stdscr,category:str="movies"):
                 elif uploader_filter == True:
                     stdscr.addstr(3,2,"[ ]Filter Uploaders")
                     uploader_filter = False
-            
+            elif category == "xxx" and y == 4:
+                if star_filter == False:
+                    stdscr.addstr(4,2,"[X]Filter Stars")
+                    star_filter = True
+                elif star_filter == True:
+                    stdscr.addstr(4,2,"[ ]Filter Stars")
+                    star_filter = False
+                    
         if category == "xxx":
             if y > 4:
                 y = 1
@@ -259,7 +277,7 @@ def categories_menu(stdscr):
             y = 9
 
 
-def searchMenu(stdscr):
+def search_menu(stdscr):
     stdscr.clear()
     stdscr.addstr(0,10,"Search Menu")
     stdscr.addstr(1,2,"[ ]Query")
@@ -296,6 +314,7 @@ def searchMenu(stdscr):
                 min_seeds = seeds_textbox.edit()
             elif y == 3:
                 min_quality = quality_textbox.edit()
+                min_quality = min_quality.strip()
             elif y == 4:
                 if uploader_filter == False:
                     uploader_filter = True
@@ -314,7 +333,26 @@ def searchMenu(stdscr):
                     torrentList.torrentList.filter_uploaders()
                 torrentList.display_page(stdscr)
                 
-                
+def torrent_menu(stdscr,torrent,category:str="movies"):
+    stdscr.clear()
+    stdscr.addstr(1,2,torrent.info["title"])
+    stdscr.addstr(2,2,torrent.info["uploader"])
+    stdscr.addstr(3,2,torrent.data["title"])
+    stdscr.addstr(4,2,category)
+    if category == "movies" or category == "movies-week":
+        stdscr.addstr(4,2,torrent.data["overview"])
+    stdscr.refresh()
+    y,x = 1,2
+    while True:
+            stdscr.move(y,x)
+            key = stdscr.getkey()
+            if key == "KEY_UP":
+                y-=1
+            elif key == "KEY_DOWN":
+                y+=1
+            elif key == '\x1b':
+                break
+            
 newOptions = [{"position": 1,"text": "Categories"},{"position":2,"text": "Search"}]
 def main(stdscr):
     while True:
@@ -334,7 +372,7 @@ def main(stdscr):
                 if y == 1:
                     categories_menu(stdscr)
                 elif y == 2:
-                    searchMenu(stdscr)
+                    search_menu(stdscr)
             if y > len(newOptions):
                 y = 1
             elif y <= 0:
