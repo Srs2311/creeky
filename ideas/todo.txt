@@ -3,8 +3,9 @@ general:
         - Torrent list has responsive design, other menu screens do not. Need to improve torrent list's responsiveness
     - Web interface
     - auto download feature based on filters (queue?)
-    - ability to add torrent uploaders to approved uploaders list from inside tui
-        - Pressing F while hovering over an uploader on torrent list or torrent menu should add to the uploaders list
+    - Pull full torrent title from torrent page if title is too long for normal menu
+    - Individual data gathering for torrent pages for most categories
+    
 
 Search menu
     - Sort type

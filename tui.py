@@ -83,9 +83,9 @@ class TorrentDisplay():
                 if len(torrent.info["title"]) > max_title_length:
                     torrent.info["title"] = torrent.info["title"][0:max_title_length]
                 
+                #menu start
                 stdscr.addstr(torrent_index + 1,2,torrent.info["title"])
                 stdscr.addstr(torrent_index + 1,(max_title_length + 4),"|")
-                
                 #writes the username in green if the user is in the trusted uploader json
                 try:
                     with open("./filters/trustedUploaders.json", "r") as trusted_uploaders:
@@ -98,7 +98,7 @@ class TorrentDisplay():
                         stdscr.addstr(torrent_index + 1,(max_title_length + 5),torrent.info["uploader"],curses.color_pair(1))
                     else:
                         stdscr.addstr(torrent_index + 1,(max_title_length + 5),torrent.info["uploader"])
-                
+                #Rest of the menu
                 stdscr.addstr(torrent_index + 1,(max_title_length + 14),"|")
                 stdscr.addstr(torrent_index + 1,(max_title_length + 15),torrent.info["size"])
                 stdscr.addstr(torrent_index + 1,(max_title_length + 24),"|")
@@ -148,7 +148,15 @@ class TorrentDisplay():
                     self.display_page(stdscr,page_number=page_number)
                     break 
                 elif x == max_title_length + 5:
-                    tl.add_to_filter("./filters/trustedUploaders.json",self.pages[page_number][y-1].info["uploader"])
+                    with open ("./filters/trustedUploaders.json","r") as trusted_uploaders:
+                        trusted_uploaders = json.load(trusted_uploaders)
+                    if self.pages[page_number][y-1].info["uploader"] not in trusted_uploaders:
+                        tl.add_to_filter("./filters/trustedUploaders.json",self.pages[page_number][y-1].info["uploader"])
+                        
+                    elif self.pages[page_number][y-1].info["uploader"] in trusted_uploaders:
+                        tl.remove_from_filter("./filters/trustedUploaders.json",self.pages[page_number][y-1].info["uploader"])
+                    self.display_page(stdscr,page_number,y,x)
+                    break
                 #open in browser function    
                 elif x == max_title_length + 32:
                     self.pages[page_number][y-1].get_data(category = self.category)
@@ -380,22 +388,21 @@ def torrent_menu(stdscr,torrent,category:str="movies"):
     stdscr.clear()
     stdscr.addstr(1,2,torrent.info["title"])
     stdscr.addstr(2,2,torrent.info["uploader"])
-    stdscr.addstr(3,2,torrent.data["title"])
     #draws the series data for tv shows on the screen
     if category == "tv" or category == "tv-week":
         try:
-            stdscr.addstr(3,2,torrent.series_data["overview"])
+            stdscr.addstr(4,2,torrent.series_data["overview"])
         except AttributeError:
             stdscr.addstr(3,2,"Could not Find Series Data")
         else:
-            stdscr.addstr(3,2,torrent.data["title"])
+            stdscr.addstr(3,2,torrent.series_data["name"])
     
     if category == "movies" or category == "movies-week":
         stdscr.addstr(4,2,torrent.data["overview"])
     if category == "xxx" or category == "xxx-week":
+        stdscr.addstr(3,2,torrent.series_data["title"])
         i = 3
-        for performer in torrent.data["performers"]:
-            
+        for performer in torrent.data["performers"]:    
             i = i + 1
             stdscr.addstr(i,2,performer)
     stdscr.refresh()
@@ -413,6 +420,7 @@ def torrent_menu(stdscr,torrent,category:str="movies"):
 newOptions = [{"position": 1,"text": "Categories"},{"position":2,"text": "Search"}]
 def main(stdscr):
     curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
+    curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
     while True:
         stdscr.clear()
         for option in newOptions:

@@ -328,6 +328,8 @@ def get_popular_queue(queue,time:str="day"):
     except UnboundLocalError:
         return None
 
+#filter management
+#maybe move this to its own module
 def add_to_filter(filter:str,item:str):
     with open(filter, "r") as item_list:
         items = json.load(item_list)
@@ -335,3 +337,12 @@ def add_to_filter(filter:str,item:str):
             items.append(item)
         with open(filter, "w") as item_list:
             item_list.write(json.dumps(items))
+
+def remove_from_filter(filter:str,item:str):
+    with open(filter, "r") as item_list:
+        items = json.load(item_list)
+        if item in items:
+            items.remove(item)
+        with open(filter, "w") as item_list:
+            item_list.write(json.dumps(items))
+            
