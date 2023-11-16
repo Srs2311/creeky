@@ -3,12 +3,12 @@ general:
         - Torrent list has responsive design, other menu screens do not. Need to improve torrent list's responsiveness
     - Web interface
     - auto download feature based on filters (queue?)
-    - Pull full torrent title from torrent page if title is too long for normal menu
+    - Pull full torrent title from torrent page if title is too long for normal menu <- likely the nxt big fix. Will improve filtering a lot.
+        - slows things down a toooooooon. link has full title in it. extracting from there.
     - Individual data gathering for torrent pages for most categories
     
 
 Search menu
-    - Sort type
     - Category-based search
     - exiting torrentlist back to search menu is not redrawing search menu
 

@@ -8,6 +8,8 @@ import qbittorrentapi
 import torrent_lister as tl
 import json
 
+import filter_manager as fm
+
 class TorrentDisplay():
     """Creates a list of pages with appropriately long lists of torrents based on screen size"""
     def __init__(self,category:str="movies",time:str="day",mode:str="popular",search_url:str = "") -> None:
@@ -79,12 +81,9 @@ class TorrentDisplay():
         else:
             for torrent in self.pages[page_number]:
                 torrent_index = self.pages[page_number].index(torrent)
-                
-                if len(torrent.info["title"]) > max_title_length:
-                    torrent.info["title"] = torrent.info["title"][0:max_title_length]
-                
+        
                 #menu start
-                stdscr.addstr(torrent_index + 1,2,torrent.info["title"])
+                stdscr.addstr(torrent_index + 1,2,torrent.info["title"][:max_title_length])
                 stdscr.addstr(torrent_index + 1,(max_title_length + 4),"|")
                 #writes the username in green if the user is in the trusted uploader json
                 try:
@@ -151,10 +150,10 @@ class TorrentDisplay():
                     with open ("./filters/trustedUploaders.json","r") as trusted_uploaders:
                         trusted_uploaders = json.load(trusted_uploaders)
                     if self.pages[page_number][y-1].info["uploader"] not in trusted_uploaders:
-                        tl.add_to_filter("./filters/trustedUploaders.json",self.pages[page_number][y-1].info["uploader"])
+                        fm.add_to_filter("./filters/trustedUploaders.json",self.pages[page_number][y-1].info["uploader"])
                         
                     elif self.pages[page_number][y-1].info["uploader"] in trusted_uploaders:
-                        tl.remove_from_filter("./filters/trustedUploaders.json",self.pages[page_number][y-1].info["uploader"])
+                        fm.remove_from_filter("./filters/trustedUploaders.json",self.pages[page_number][y-1].info["uploader"])
                     self.display_page(stdscr,page_number,y,x)
                     break
                 #open in browser function    
@@ -183,11 +182,15 @@ class TorrentDisplay():
                 #similar torrents function
                 elif x == max_title_length + 41:
                     self.pages[page_number][y-1].get_data(category=self.category)
-                    url = tl.generate_search_url(query=self.pages[page_number][y-1].data["title"])
+                    if self.category == "tv" or self.category == "tv-week":
+                        url = tl.generate_search_url(query=self.pages[page_number][y-1].series_data["name"],)
+                    else:
+                        url = tl.generate_search_url(query=self.pages[page_number][y-1].data["title"])
+                    
                     new_torrent_list = TorrentDisplay(category=self.category,search_url=url,mode="search")
                     new_torrent_list.pagination(stdscr)
                     new_torrent_list.display_page(stdscr)
-                    self.display_page(stdscr,page_number=page_number)
+                    self.display_page(stdscr,page_number=page_number,y=y,x=x)
                     break
                     
             if y > len(self.pages[page_number]):
@@ -325,15 +328,20 @@ def categories_menu(stdscr):
         if y == 0:
             y = 9
 
-
-def search_menu(stdscr):
+def draw_search_menu(stdscr):
     stdscr.clear()
     stdscr.addstr(0,10,"Search Menu")
     stdscr.addstr(1,2,"[ ]Query")
     stdscr.addstr(2,2,"[ ]Minimum Seeders")
     stdscr.addstr(3,2,"[ ]Minimum Quality")
     stdscr.addstr(4,2,"[ ]Filter Uploaders")
-    stdscr.addstr(5,2,"[ ]Search")
+    stdscr.addstr(5,2,"[ ]Sort:")
+    stdscr.addstr(6,2,"[ ]Search")
+
+
+def search_menu(stdscr):
+    stdscr.clear()
+    stdscr.refresh()
     query_window = curses.newwin(1,100,1,25)
     query_textbox = curses.textpad.Textbox(query_window)
     seeds_window = curses.newwin(1,10,2,25)
@@ -342,11 +350,15 @@ def search_menu(stdscr):
     quality_textbox = curses.textpad.Textbox(quality_window)
     pages_window = curses.newwin(1,100,5,15)
     pagesTextbox = curses.textpad.Textbox(pages_window)
-    
+    draw_search_menu(stdscr)
+    stdscr.addstr(5,2,"[ ]Sort: time/desc")
+    stdscr.refresh()
     y,x = 1,3
     uploader_filter = False
     min_seeds = 0
     min_quality = "480p"
+    i = 0
+    sort_options = ("time/desc","time/asc","size/desc","size/asc","seeders/desc","seeders/asc","leechers/desc","leechers/asc")
     while True:
         stdscr.refresh()
         stdscr.move(y,x)
@@ -373,9 +385,16 @@ def search_menu(stdscr):
                 elif uploader_filter:
                     uploader_filter = False
                     stdscr.addstr(4,2,"[ ]Filter Uploaders")
-                
             elif y == 5:
-                url = tl.generate_search_url(query_text)
+                    i += 1
+                    if i > len(sort_options) - 1:
+                        i = 0
+                    stdscr.clear()
+                    draw_search_menu(stdscr)
+                    stdscr.addstr(5,2,f"[ ]Sort: {sort_options[i]}")
+                    
+            elif y == 6:
+                url = tl.generate_search_url(query_text,sort=sort_options[i])
                 torrentList = TorrentDisplay(mode="search",search_url=url)
                 
                 torrentList.torrentList.filter_minimum_seeders(min_seeds)
@@ -383,6 +402,13 @@ def search_menu(stdscr):
                 if uploader_filter:
                     torrentList.torrentList.filter_uploaders()
                 torrentList.display_page(stdscr)
+                
+                search_menu(stdscr)
+                break
+        if y <= 0:
+            y = 6
+        elif y > 6:
+            y=1
                 
 def torrent_menu(stdscr,torrent,category:str="movies"):
     stdscr.clear()
@@ -398,9 +424,10 @@ def torrent_menu(stdscr,torrent,category:str="movies"):
             stdscr.addstr(3,2,torrent.series_data["name"])
     
     if category == "movies" or category == "movies-week":
+        stdscr.addstr(3,2,torrent.data["title"])
         stdscr.addstr(4,2,torrent.data["overview"])
     if category == "xxx" or category == "xxx-week":
-        stdscr.addstr(3,2,torrent.series_data["title"])
+        stdscr.addstr(3,2,torrent.data["title"])
         i = 3
         for performer in torrent.data["performers"]:    
             i = i + 1

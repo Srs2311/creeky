@@ -36,13 +36,16 @@ class Torrent:
         torrent_info['uploader'] = torrent.select('.coll-5')[0].get_text()
         torrent_info['date'] = torrent.select('.coll-5')[0].get_text()
         torrent_info['url'] = "https://1337x.to"
+        if len(torrent_info["title"]) > 80:
+            torrent_info['title'] = get_full_title(torrent_info['link'])
         if re.search("[0-9]?[0-9][0-9][0-9]p",torrent_info["title"]):
                 torrent_info["quality"] = (re.findall("[0-9]?[0-9][0-9][0-9]p",torrent_info["title"]))[0]
         else:
             torrent_info["quality"] = "Not In Title"
         self.info = torrent_info
-    
-    
+        
+        
+        
     def get_data(self,category):
         if category == "movies":
             #Does some regex splitting to try and extract just the title of the movie from the torrent title
@@ -307,6 +310,10 @@ def get_magnet(url):
     magnet = anchors[30].get('href')
     return magnet
 
+def get_full_title(link:str):
+    full_title = re.split("torrent\/[0-9][0-9][0-9][0-9][0-9][0-9][0-9]?\/",link)[1][:-1]
+    full_title = full_title.replace("-",".")
+    return full_title
 
 def get_popular_queue(queue,time:str="day"):
     """Makes an object based from a popular queue"""
@@ -317,7 +324,7 @@ def get_popular_queue(queue,time:str="day"):
         queue = f"{queue}-week"
     if queue == "xxx" or queue == "xxx-week":
         popularTorrents = XXXTorrentList(f"{url}{queue}")
-    elif queue == "movies" or queue =="tv" or queue == "movies-week" or queue == "tv-week" or queue == "documentaries" or queue == "documentaires-week" \
+    elif queue == "movies" or queue =="tv" or queue == "movies-week" or queue == "tv-week" or queue == "documentaries" or queue == "documentaries-week" \
         or  queue == "anime" or queue == "anime-week":
         popularTorrents = MovieTVTorrentList(f"{url}{queue}")
     elif queue == "games" or queue == "games-week" or queue == "music" or queue == "music-week" or queue == "apps" or queue == "apps-week" or queue == "other" or\
@@ -327,22 +334,4 @@ def get_popular_queue(queue,time:str="day"):
         return popularTorrents
     except UnboundLocalError:
         return None
-
-#filter management
-#maybe move this to its own module
-def add_to_filter(filter:str,item:str):
-    with open(filter, "r") as item_list:
-        items = json.load(item_list)
-        if item not in items:
-            items.append(item)
-        with open(filter, "w") as item_list:
-            item_list.write(json.dumps(items))
-
-def remove_from_filter(filter:str,item:str):
-    with open(filter, "r") as item_list:
-        items = json.load(item_list)
-        if item in items:
-            items.remove(item)
-        with open(filter, "w") as item_list:
-            item_list.write(json.dumps(items))
-            
+    
