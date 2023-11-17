@@ -336,7 +336,8 @@ def draw_search_menu(stdscr):
     stdscr.addstr(3,2,"[ ]Minimum Quality")
     stdscr.addstr(4,2,"[ ]Filter Uploaders")
     stdscr.addstr(5,2,"[ ]Sort:")
-    stdscr.addstr(6,2,"[ ]Search")
+    stdscr.addstr(6,2,"[ ]Category:")
+    stdscr.addstr(7,2,"[ ]Search")
 
 
 def search_menu(stdscr):
@@ -351,14 +352,18 @@ def search_menu(stdscr):
     pages_window = curses.newwin(1,100,5,15)
     pagesTextbox = curses.textpad.Textbox(pages_window)
     draw_search_menu(stdscr)
-    stdscr.addstr(5,2,"[ ]Sort: time/desc")
-    stdscr.refresh()
     y,x = 1,3
     uploader_filter = False
     min_seeds = 0
     min_quality = "480p"
     i = 0
     sort_options = ("time/desc","time/asc","size/desc","size/asc","seeders/desc","seeders/asc","leechers/desc","leechers/asc")
+    cat_options = ("movies","tv","games","music","apps","anime","documentaries","other","xxx")
+    cat = 0
+    stdscr.addstr(5,2,f"[ ]Sort: {sort_options[i]}")
+    stdscr.addstr(6,2,f"[ ]Category: {cat_options[cat]}")
+    stdscr.refresh()
+    
     while True:
         stdscr.refresh()
         stdscr.move(y,x)
@@ -392,22 +397,32 @@ def search_menu(stdscr):
                     stdscr.clear()
                     draw_search_menu(stdscr)
                     stdscr.addstr(5,2,f"[ ]Sort: {sort_options[i]}")
+                    stdscr.addstr(6,2,f"[ ]Category: {cat_options[cat]}")
                     
             elif y == 6:
-                url = tl.generate_search_url(query_text,sort=sort_options[i])
-                torrentList = TorrentDisplay(mode="search",search_url=url)
+                    cat += 1
+                    if cat > len(cat_options) - 1:
+                        cat = 0
+                    stdscr.clear()
+                    draw_search_menu(stdscr)
+                    stdscr.addstr(5,2,f"[ ]Sort: {sort_options[i]}")
+                    stdscr.addstr(6,2,f"[ ]Category: {cat_options[cat]}")
+                    
+            elif y == 7:
+                url = tl.generate_search_url(query_text,sort=sort_options[i],category=cat_options[cat])
+                torrentList = TorrentDisplay(mode="search",search_url=url,category=cat_options[cat])
                 
                 torrentList.torrentList.filter_minimum_seeders(min_seeds)
                 torrentList.torrentList.filter_minimum_quality(min_quality)
                 if uploader_filter:
                     torrentList.torrentList.filter_uploaders()
+                torrentList.pagination(stdscr)
                 torrentList.display_page(stdscr)
-                
                 search_menu(stdscr)
                 break
         if y <= 0:
-            y = 6
-        elif y > 6:
+            y = 7
+        elif y > 7:
             y=1
                 
 def torrent_menu(stdscr,torrent,category:str="movies"):

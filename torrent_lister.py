@@ -296,10 +296,10 @@ class XXXTorrentList(TorrentList):
         for torrent in self.torrents:
             torrent.get_data(category="xxx")
         
-def generate_search_url(query,sort="seeders/desc",tpage:int=1,baseurl="https://1337x.to/"):
+def generate_search_url(query,sort="seeders/desc",tpage:int=1,baseurl="https://1337x.to/",category="movies"):
     """Generates a properly formated search URL"""
     query = query.replace(" ","+").lower()
-    url = f"{baseurl}sort-search/{query}/{sort}/{tpage}/"
+    url = f"{baseurl}sort-search/{query}/{category}/{sort}/{tpage}/"
 
     return url
 
