@@ -1,10 +1,11 @@
 general:
-    - improve portability
-        - Torrent list has responsive design, other menu screens do not. Need to improve torrent list's responsiveness
     - Web interface
     - auto download feature based on filters (queue?)
     - Individual data gathering for torrent pages for most categories
-    
+
+tui:
+    - improve portability
+        - Torrent list has responsive design, other menu screens do not. Need to improve torrent list's responsiveness
 
 Search menu
     - Category-based search

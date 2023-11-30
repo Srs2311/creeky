@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import curses
 import curses.textpad
 from curses import wrapper
@@ -5,9 +6,9 @@ import os
 from dotenv import load_dotenv
 import webbrowser
 import qbittorrentapi
-import torrent_lister as tl
 import json
 
+import torrent_lister as tl
 import filter_manager as fm
 
 class TorrentDisplay():
@@ -42,7 +43,6 @@ class TorrentDisplay():
             for torrent in self.torrentList.torrents:
                 new_page.append(torrent)
             self.pages.append(new_page)
-
     
     def display_page(self,stdscr,page_number:int=0,y=1,x=2):
         stdscr.clear()
@@ -81,9 +81,19 @@ class TorrentDisplay():
         else:
             for torrent in self.pages[page_number]:
                 torrent_index = self.pages[page_number].index(torrent)
-        
+                highlight = False
                 #menu start
-                stdscr.addstr(torrent_index + 1,2,torrent.info["title"][:max_title_length])
+                if self.category == "xxx" or self.category == "xxx-week":
+                    stars = fm.get_filter_values("./filters/stars.json")
+                    for star in stars:
+                        if star in torrent.info["title"].replace("."," "):
+                            highlight = True
+                        if highlight == True:
+                            stdscr.addstr(torrent_index + 1,2,torrent.info["title"][:max_title_length],curses.color_pair(1))
+                        if highlight == False:
+                            stdscr.addstr(torrent_index + 1,2,torrent.info["title"][:max_title_length])
+                else:
+                    stdscr.addstr(torrent_index + 1,2,torrent.info["title"][:max_title_length])
                 stdscr.addstr(torrent_index + 1,(max_title_length + 4),"|")
                 #writes the username in green if the user is in the trusted uploader json
                 try:
@@ -185,7 +195,7 @@ class TorrentDisplay():
                     if self.category == "tv" or self.category == "tv-week":
                         url = tl.generate_search_url(query=self.pages[page_number][y-1].series_data["name"],)
                     else:
-                        url = tl.generate_search_url(query=self.pages[page_number][y-1].data["title"])
+                        url = tl.generate_search_url(query=self.pages[page_number][y-1].data["title"],category=self.category)
                     
                     new_torrent_list = TorrentDisplay(category=self.category,search_url=url,mode="search")
                     new_torrent_list.pagination(stdscr)
@@ -429,6 +439,7 @@ def torrent_menu(stdscr,torrent,category:str="movies"):
     stdscr.clear()
     stdscr.addstr(1,2,torrent.info["title"])
     stdscr.addstr(2,2,torrent.info["uploader"])
+    
     #draws the series data for tv shows on the screen
     if category == "tv" or category == "tv-week":
         try:
@@ -442,11 +453,16 @@ def torrent_menu(stdscr,torrent,category:str="movies"):
         stdscr.addstr(3,2,torrent.data["title"])
         stdscr.addstr(4,2,torrent.data["overview"])
     if category == "xxx" or category == "xxx-week":
+        stars = fm.get_filter_values("./filters/stars.json")
         stdscr.addstr(3,2,torrent.data["title"])
         i = 3
         for performer in torrent.data["performers"]:    
             i = i + 1
-            stdscr.addstr(i,2,performer)
+            if performer not in stars:
+                stdscr.addstr(i,2,performer)
+            if performer in stars:
+                stdscr.addstr(i,2,performer,curses.color_pair(1))
+        
     stdscr.refresh()
     y,x = 1,2
     while True:
@@ -458,6 +474,18 @@ def torrent_menu(stdscr,torrent,category:str="movies"):
                 y+=1
             elif key == '\x1b':
                 break
+            elif key == " ":
+                if y == 4:
+                    if torrent.data["performers"][0] not in stars:
+                        fm.add_to_filter("./filters/stars.json",torrent.data["performers"][0])
+                    elif torrent.data["performers"][0] in stars:
+                        fm.remove_from_filter("./filters/stars.json",torrent.data["performers"][0])
+                
+                elif len(torrent.data["performers"]) > 1 and y == 5:
+                    if torrent.data["performers"][1] not in stars:
+                        fm.add_to_filter("./filters/stars.json",torrent.data["performers"][1])
+                    elif torrent.data["performers"][1] in stars:
+                        fm.remove_from_filter("./filters/stars.json",torrent.data["performers"][1])
             
 newOptions = [{"position": 1,"text": "Categories"},{"position":2,"text": "Search"}]
 def main(stdscr):

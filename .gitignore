@@ -12,3 +12,4 @@ filters/trustedUploaders.txt
 filters/trustedUploaders.json
 pyvenv.cfg
 *.pyc
+__pycache__/torrent_lister.cpython-311.pyc

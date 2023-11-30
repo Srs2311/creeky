@@ -1,0 +1,5 @@
+#! /bin/bash
+cd /home/gato/projects/1337-improved
+source ./bin/activate
+python tui.py
+

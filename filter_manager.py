@@ -21,3 +21,7 @@ def remove_from_filter(filter:str,item:str):
         with open(filter, "w") as item_list:
             item_list.write(json.dumps(items))
             
+def get_filter_values(filter):
+    with open(filter, "r") as item_list:
+        items = json.load(item_list)
+        return items
